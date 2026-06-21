@@ -19,7 +19,6 @@
 - [Архитектура](#архитектура)
 - [Стек технологий](#стек-технологий)
 - [Быстрый старт](#быстрый-старт)
-- [Структура проекта](#структура-проекта)
 - [API](#api)
 - [Лицензия](#лицензия)
 
@@ -44,7 +43,7 @@ PostgreSQL → Flask API → Dashboard
 - **Базы данных:** PostgreSQL 15, Hive Metastore
 - **Бэкенд:** Python 3.10, Flask, psycopg2, PyHive
 - **Фронтенд:** Vanilla JS, Chart.js, Lucide Icons
-- **Инфраструктура:** Docker Compose (12 сервисов), Hue
+- **Инфраструктура:** Docker Compose, Hue
 - **Данные:** Synthea, FHIR R4, SNOMED CT, ICD-10
 
 ## 🚀 Быстрый старт
@@ -53,7 +52,7 @@ PostgreSQL → Flask API → Dashboard
 
 - Docker + Docker Compose
 - Java 17 (для сборки Synthea)
-- 16 ГБ RAM (рекомендуется)
+- 32 ГБ RAM (рекомендуется)
 - 30 ГБ свободного места на диске
 
 ### Установка
@@ -77,7 +76,7 @@ chmod +x spark.sh
 | Сервис | URL | Логин / Пароль |
 |--------|-----|----------------|
 | 📊 Dashboard | http://localhost:8090 | — |
-| 🌀 NiFi UI | https://localhost:8443/nifi | admin / adminpassword123 |
+| 🌀 NiFi UI | https://localhost:8443/nifi | admin / admin_password123 |
 | 🐝 Hue (SQL) | http://localhost:8888 | root / — |
 | 🐘 HDFS Web UI | http://localhost:9870 | — |
 | ⚡ Spark UI | http://localhost:8080 | — |
