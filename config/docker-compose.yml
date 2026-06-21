@@ -1,0 +1,122 @@
+version: "3.8"
+services:
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    restart: always
+    ports: ["9870:9870","9000:9000"]
+    environment: [CLUSTER_NAME=medical-cluster]
+    env_file: ./hadoop.env
+    volumes: [hadoop_namenode:/hadoop/dfs/name]
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    restart: always
+    environment: {SERVICE_PRECONDITION: "namenode:9870"}
+    env_file: ./hadoop.env
+    volumes: [hadoop_datanode:/hadoop/dfs/data]
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: resourcemanager
+    restart: always
+    ports: ["8088:8088"]
+    environment: {SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864"}
+    env_file: ./hadoop.env
+  hive-server:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-server
+    restart: always
+    ports: ["10000:10000","10002:10002"]
+    environment:
+      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore-postgresql/metastore"
+      SERVICE_PRECONDITION: "hive-metastore:9083"
+    env_file: ./hadoop.env
+    volumes:
+      - ./hive-site.xml:/opt/hive/conf/hive-site.xml
+      # FIX: монтируем core-site.xml чтобы hive-server видел HDFS
+      - ./core-site.xml:/opt/hadoop-3.2.1/etc/hadoop/core-site.xml
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-metastore
+    restart: always
+    environment: {SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 hive-metastore-postgresql:5432"}
+    env_file: ./hadoop.env
+    # FIX: монтируем core-site.xml в metastore
+    volumes:
+      - ./core-site.xml:/opt/hadoop-3.2.1/etc/hadoop/core-site.xml
+    command: /opt/hive/bin/hive --service metastore
+  hive-metastore-postgresql:
+    image: bde2020/hive-metastore-postgresql:2.3.0
+    container_name: hive-metastore-postgresql
+    volumes: [postgresql_hive:/var/lib/postgresql/data]
+  spark-master:
+    image: bde2020/spark-master:3.0.0-hadoop3.2
+    container_name: spark-master
+    ports: ["8080:8080","7077:7077"]
+    environment: [INIT_DAEMON_STEP=setup_spark]
+    env_file: ./hadoop.env
+  spark-worker:
+    image: bde2020/spark-worker:3.0.0-hadoop3.2
+    container_name: spark-worker
+    depends_on: [spark-master]
+    ports: ["8081:8081"]
+    environment: [SPARK_MASTER=spark://spark-master:7077]
+    env_file: ./hadoop.env
+  nifi:
+    image: apache/nifi:1.23.2
+    container_name: nifi
+    ports: ["8443:8443"]
+    environment:
+      - SINGLE_USER_CREDENTIALS_USERNAME=admin
+      - SINGLE_USER_CREDENTIALS_PASSWORD=admin_password123
+      - NIFI_JVM_HEAP_INIT=4g
+      - NIFI_JVM_HEAP_MAX=8g
+    volumes:
+      - nifi_data:/opt/nifi/nifi-current/data
+      - ~/medical-pipeline/synthea_output:/opt/nifi/input
+      - ~/medical-pipeline/core-site.xml:/opt/nifi/core-site.xml
+    healthcheck:
+      test: ["CMD","curl","-f","https://localhost:8443/nifi/","-k"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+  hue:
+    image: gethue/hue:latest
+    container_name: hue
+    ports: ["8888:8888"]
+    volumes: [./hue.ini:/usr/share/hue/desktop/conf/hue.ini]
+    depends_on: [hive-server]
+  postgres:
+    image: postgres:15
+    container_name: postgres-results
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_USER: medical
+      POSTGRES_PASSWORD: medical_pass
+      POSTGRES_DB: medical_stats
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # FIX: разбиваем на два файла — 01_ создаёт таблицы, 02_ создаёт hue_db
+      # (CREATE DATABASE нельзя запускать в транзакции — нужна отдельная сессия)
+      - ~/medical-pipeline/init_postgres.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ~/medical-pipeline/init_hue.sql:/docker-entrypoint-initdb.d/02_hue.sql
+  dashboard:
+    build: ./dashboard
+    container_name: dashboard
+    ports: ["8090:5000"]
+    environment:
+      PG_HOST: postgres-results
+      PG_DB: medical_stats
+      PG_USER: medical
+      PG_PASSWORD: medical_pass
+      HIVE_HOST: hive-server
+      HIVE_PORT: 10000
+      HIVE_DB: default
+    depends_on: [postgres,hive-server]
+    restart: always
+volumes:
+  hadoop_namenode:
+  hadoop_datanode:
+  postgresql_hive:
+  nifi_data:
+  postgres_data:

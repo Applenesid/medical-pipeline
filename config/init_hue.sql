@@ -1,0 +1,7 @@
+CREATE DATABASE hue_db;
+CREATE USER hue WITH PASSWORD 'hue_pass';
+GRANT ALL PRIVILEGES ON DATABASE hue_db TO hue;
+ALTER DATABASE hue_db OWNER TO hue;
+\connect hue_db
+GRANT ALL ON SCHEMA public TO hue;
+GRANT CREATE ON SCHEMA public TO hue;
