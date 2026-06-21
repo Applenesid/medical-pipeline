@@ -1,0 +1,8 @@
+flask==3.0.3
+flask-cors==4.0.1
+psycopg2-binary==2.9.9
+PyHive[hive_pure_sasl]
+thrift==0.16.0
+thrift_sasl==0.4.3
+pure-sasl==0.6.2
+gunicorn==22.0.0
