@@ -96,4 +96,3 @@ chmod +x spark.sh
 ## 📄 Лицензия
 
 MIT © 2026 Applenesid x mcipan
-## 📁 Структура проекта
