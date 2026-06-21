@@ -265,8 +265,6 @@ def patient_conditions(patient_id):
     except Exception:
         pass
     try:
-        # Fallback: берём условия пациента напрямую из conditions
-        # (Spark пишет туда: patient_id, icd_code, diagnosis_name, clinical_status, onset_date)
         rows = pg_query("""
             SELECT diagnosis_name, icd_code,
                    clinical_status, onset_date
