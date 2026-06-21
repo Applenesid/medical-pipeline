@@ -1,1 +1,1079 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medical Pipeline Dashboard</title>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  :root,[data-theme="light"]{
+    --bg:#f7f6f2;--surface:#f9f8f5;--surface2:#fbfbf9;--offset:#f3f0ec;
+    --div:#dcd9d5;--border:#d4d1ca;
+    --text:#28251d;--muted:#7a7974;--faint:#bab9b4;
+    --primary:#01696f;--primary-h:#0c4e54;--primary-hl:#cedcd8;
+    --success:#437a22;--error:#a12c7b;--warning:#964219;
+    --orange:#da7101;--gold:#d19900;--blue:#006494;--purple:#7a39bb;
+    --sh-sm:0 1px 2px oklch(0.2 0.01 80/0.06);
+    --sh-md:0 4px 12px oklch(0.2 0.01 80/0.08);
+    --r-sm:.375rem;--r-md:.5rem;--r-lg:.75rem;--r-xl:1rem;--r-full:9999px;
+    --xs:clamp(.75rem,.7rem + .25vw,.875rem);
+    --sm:clamp(.875rem,.8rem + .35vw,1rem);
+    --base:clamp(1rem,.95rem + .25vw,1.125rem);
+    --lg:clamp(1.125rem,1rem + .75vw,1.5rem);
+    --xl:clamp(1.5rem,1.2rem + 1.25vw,2.25rem);
+    --s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.25rem;
+    --s6:1.5rem;--s8:2rem;--s10:2.5rem;--s12:3rem;--s16:4rem;
+    --font:'Satoshi','Inter',sans-serif;--tr:180ms cubic-bezier(.16,1,.3,1);
+  }
+  [data-theme="dark"]{
+    --bg:#171614;--surface:#1c1b19;--surface2:#201f1d;--offset:#1d1c1a;
+    --div:#262523;--border:#393836;
+    --text:#cdccca;--muted:#797876;--faint:#5a5957;
+    --primary:#4f98a3;--primary-h:#227f8b;--primary-hl:#313b3b;
+    --success:#6daa45;--error:#d163a7;--warning:#bb653b;
+    --orange:#fdab43;--gold:#e8af34;--blue:#5591c7;--purple:#a86fdf;
+    --sh-sm:0 1px 2px oklch(0 0 0/.2);--sh-md:0 4px 12px oklch(0 0 0/.3);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-font-smoothing:antialiased}
+  body{min-height:100dvh;font-family:var(--font);font-size:var(--sm);color:var(--text);background:var(--bg);display:flex}
+  button{cursor:pointer;background:none;border:none;font:inherit;color:inherit}
+  a{text-decoration:none;color:inherit}
 
+  /* ── Sidebar ── */
+  .sidebar{width:220px;min-height:100dvh;background:var(--surface);border-right:1px solid var(--div);display:flex;flex-direction:column;position:sticky;top:0;height:100dvh;overflow-y:auto;flex-shrink:0}
+  .sidebar-logo{padding:var(--s5) var(--s5) var(--s4);border-bottom:1px solid var(--div);display:flex;align-items:center;gap:var(--s3)}
+  .logo-mark{width:32px;height:32px;flex-shrink:0}
+  .logo-text{font-size:var(--sm);font-weight:700;letter-spacing:-.01em}
+  .logo-sub{font-size:var(--xs);color:var(--muted)}
+  .sidebar-nav{padding:var(--s3);flex:1}
+  .nav-label{font-size:var(--xs);font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;padding:var(--s4) var(--s3) var(--s2)}
+  .nav-item{display:flex;align-items:center;gap:var(--s3);padding:var(--s2) var(--s3);border-radius:var(--r-md);color:var(--muted);font-size:var(--sm);font-weight:500;cursor:pointer;transition:background var(--tr),color var(--tr);margin-bottom:1px}
+  .nav-item:hover{background:var(--offset);color:var(--text)}
+  .nav-item.active{background:var(--primary-hl);color:var(--primary)}
+  .nav-item .ic{width:16px;height:16px;flex-shrink:0}
+  .sidebar-footer{padding:var(--s4);border-top:1px solid var(--div)}
+
+  /* ── Main layout ── */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+  .topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--div);display:flex;align-items:center;justify-content:space-between;padding:0 var(--s6);position:sticky;top:0;z-index:10;gap:var(--s4)}
+  .topbar-left{display:flex;align-items:center;gap:var(--s3)}
+  .bc{display:flex;align-items:center;gap:var(--s2);font-size:var(--xs);color:var(--muted)}
+  .bc-cur{color:var(--text);font-weight:500}
+  .topbar-right{display:flex;align-items:center;gap:var(--s2)}
+  .btn-icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:var(--r-md);color:var(--muted);transition:background var(--tr),color var(--tr)}
+  .btn-icon:hover{background:var(--offset);color:var(--text)}
+  .badge{display:inline-flex;align-items:center;padding:2px var(--s2);border-radius:var(--r-full);font-size:var(--xs);font-weight:600}
+  .b-ok{background:color-mix(in oklch,var(--success) 15%,var(--surface));color:var(--success)}
+  .b-err{background:color-mix(in oklch,var(--error) 15%,var(--surface));color:var(--error)}
+  .b-warn{background:color-mix(in oklch,var(--warning) 15%,var(--surface));color:var(--warning)}
+  .b-pri{background:color-mix(in oklch,var(--primary) 15%,var(--surface));color:var(--primary)}
+  .b-tag{background:color-mix(in oklch,var(--blue) 15%,var(--surface));color:var(--blue)}
+
+  /* ── Pages ── */
+  .page{display:none;flex-direction:column;flex:1;overflow:hidden}
+  .page.active{display:flex}
+  .content{padding:var(--s6);overflow-y:auto;flex:1}
+  .ph{margin-bottom:var(--s6)}
+  .pt{font-size:var(--xl);font-weight:700;letter-spacing:-.02em;line-height:1.1}
+  .ps{font-size:var(--sm);color:var(--muted);margin-top:var(--s1)}
+
+  /* ── KPI ── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--s4);margin-bottom:var(--s6)}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--s5);box-shadow:var(--sh-sm);transition:box-shadow var(--tr)}
+  .kpi:hover{box-shadow:var(--sh-md)}
+  .kpi-lbl{font-size:var(--xs);font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--s2);display:flex;align-items:center;gap:var(--s2)}
+  .kpi-val{font-size:var(--xl);font-weight:700;font-variant-numeric:tabular-nums;line-height:1;margin-bottom:var(--s1)}
+  .kpi-d{font-size:var(--xs);color:var(--muted)}
+  .d-src{font-size:10px;color:var(--faint);margin-top:var(--s1)}
+
+  /* ── Charts grid ── */
+  .cg{display:grid;grid-template-columns:1fr 1fr;gap:var(--s4);margin-bottom:var(--s6)}
+  .cc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--s5);box-shadow:var(--sh-sm)}
+  .cc.wide{grid-column:span 2}
+  .ch{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--s4)}
+  .ct{font-size:var(--base);font-weight:600}
+  .csub{font-size:var(--xs);color:var(--muted);margin-top:2px}
+  .cbox{position:relative;height:220px}
+
+  /* ── Table card ── */
+  .tc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-sm);margin-bottom:var(--s6)}
+  .th{display:flex;justify-content:space-between;align-items:center;padding:var(--s4) var(--s5);border-bottom:1px solid var(--div);flex-wrap:wrap;gap:var(--s3)}
+  table{width:100%;border-collapse:collapse}
+  thead th{font-size:var(--xs);font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:var(--s3) var(--s5);text-align:left;border-bottom:1px solid var(--div);background:var(--surface2);white-space:nowrap}
+  tbody td{font-size:var(--sm);padding:var(--s3) var(--s5);border-bottom:1px solid oklch(from var(--text) l c h/.05);font-variant-numeric:tabular-nums;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover td{background:var(--offset)}
+  .mono{font-family:'SF Mono','Fira Code',monospace;font-size:var(--xs);color:var(--faint)}
+  .prog{width:80px;height:4px;background:var(--div);border-radius:var(--r-full);overflow:hidden;display:inline-block;vertical-align:middle}
+  .pf{height:100%;border-radius:var(--r-full);background:var(--primary)}
+
+  /* ── Status pipeline ── */
+  .pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--s4);margin-bottom:var(--s6)}
+  .pc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--s5);box-shadow:var(--sh-sm)}
+  .pn{font-size:var(--sm);font-weight:600;margin-bottom:var(--s3);display:flex;align-items:center;gap:var(--s2)}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .dot.ok{background:var(--success);box-shadow:0 0 6px var(--success)}
+  .dot.err{background:var(--error)}
+  .dot.loading{background:var(--gold);animation:pulse 1.2s ease-in-out infinite}
+  .pm{display:flex;gap:var(--s4);flex-wrap:wrap}
+  .pml{font-size:var(--xs);color:var(--muted)}
+  .pmv{font-size:var(--base);font-weight:600;font-variant-numeric:tabular-nums}
+
+  /* ── Animations ── */
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--div);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .skeleton{background:linear-gradient(90deg,var(--offset) 25%,var(--div) 50%,var(--offset) 75%);background-size:200% 100%;animation:shimmer 1.5s ease-in-out infinite;border-radius:var(--r-sm)}
+  @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+
+  /* ── Filters bar ── */
+  .filters{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;margin-bottom:var(--s5)}
+  .filter-group{display:flex;align-items:center;gap:var(--s2)}
+  .filter-label{font-size:var(--xs);color:var(--muted);font-weight:500;white-space:nowrap}
+  .filter-chips{display:flex;gap:var(--s2);flex-wrap:wrap}
+  .chip{padding:4px var(--s3);border-radius:var(--r-full);font-size:var(--xs);font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--muted);transition:all var(--tr)}
+  .chip:hover{border-color:var(--primary);color:var(--primary)}
+  .chip.active{background:var(--primary-hl);border-color:var(--primary);color:var(--primary)}
+
+  /* ── Search / input ── */
+  .search-wrap{position:relative;display:flex;align-items:center}
+  .search-wrap svg{position:absolute;left:var(--s3);color:var(--muted);pointer-events:none;width:14px;height:14px}
+  input[type="text"],input[type="search"],select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:6px var(--s3) 6px var(--s8);font:inherit;font-size:var(--xs);color:var(--text);outline:none;transition:border-color var(--tr)}
+  input[type="text"]:focus,input[type="search"]:focus,select:focus{border-color:var(--primary)}
+  select{padding-left:var(--s3)}
+
+  /* ── Pagination ── */
+  .pagination{display:flex;align-items:center;gap:var(--s2);justify-content:flex-end;padding:var(--s4) var(--s5);border-top:1px solid var(--div)}
+  .pg-btn{padding:4px var(--s3);border-radius:var(--r-sm);font-size:var(--xs);font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--muted);transition:all var(--tr)}
+  .pg-btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}
+  .pg-btn:disabled{opacity:.4;cursor:not-allowed}
+  .pg-info{font-size:var(--xs);color:var(--muted)}
+
+  /* ── Patient drawer ── */
+  .drawer-overlay{position:fixed;inset:0;background:oklch(0 0 0/.5);z-index:100;display:none;align-items:flex-end;justify-content:flex-end}
+  .drawer-overlay.open{display:flex}
+  .drawer{width:440px;height:100dvh;background:var(--surface);border-left:1px solid var(--div);display:flex;flex-direction:column;overflow:hidden;transform:translateX(100%);transition:transform .25s cubic-bezier(.16,1,.3,1)}
+  .drawer-overlay.open .drawer{transform:translateX(0)}
+  .drawer-head{padding:var(--s5);border-bottom:1px solid var(--div);display:flex;justify-content:space-between;align-items:center}
+  .drawer-body{flex:1;overflow-y:auto;padding:var(--s5)}
+  .drawer-section{margin-bottom:var(--s6)}
+  .drawer-section-title{font-size:var(--xs);font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--s3)}
+  .info-row{display:flex;justify-content:space-between;padding:var(--s2) 0;border-bottom:1px solid var(--div);font-size:var(--sm)}
+  .info-row:last-child{border-bottom:none}
+  .info-key{color:var(--muted)}
+  .info-val{font-weight:500}
+
+  /* ── Settings page ── */
+  .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s4);margin-bottom:var(--s6)}
+  .settings-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--s5);box-shadow:var(--sh-sm)}
+  .settings-card h3{font-size:var(--base);font-weight:600;margin-bottom:var(--s4)}
+  .settings-row{display:flex;justify-content:space-between;align-items:center;padding:var(--s3) 0;border-bottom:1px solid var(--div)}
+  .settings-row:last-child{border-bottom:none}
+  .settings-label{font-size:var(--sm);color:var(--text)}
+  .settings-desc{font-size:var(--xs);color:var(--muted);margin-top:2px}
+  .toggle{width:40px;height:22px;background:var(--div);border-radius:var(--r-full);position:relative;cursor:pointer;transition:background var(--tr);flex-shrink:0}
+  .toggle.on{background:var(--primary)}
+  .toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:left var(--tr)}
+  .toggle.on::after{left:21px}
+  .settings-input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:6px var(--s3);font:inherit;font-size:var(--xs);color:var(--text);outline:none;transition:border-color var(--tr);width:120px;text-align:right}
+  .settings-input:focus{border-color:var(--primary)}
+  .btn-primary{padding:8px var(--s5);border-radius:var(--r-md);background:var(--primary);color:#fff;font:inherit;font-size:var(--sm);font-weight:600;cursor:pointer;transition:background var(--tr);border:none}
+  .btn-primary:hover{background:var(--primary-h)}
+  .btn-secondary{padding:8px var(--s5);border-radius:var(--r-md);background:var(--surface2);color:var(--text);font:inherit;font-size:var(--sm);font-weight:600;cursor:pointer;border:1px solid var(--border);transition:all var(--tr)}
+  .btn-secondary:hover{border-color:var(--primary);color:var(--primary)}
+
+  [data-theme-toggle]{border-radius:var(--r-full)}
+  .sec-label{font-size:var(--xs);font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:var(--s4)}
+  .err-banner{background:color-mix(in oklch,var(--error) 10%,var(--surface));border:1px solid color-mix(in oklch,var(--error) 30%,var(--border));border-radius:var(--r-md);padding:var(--s3) var(--s4);font-size:var(--xs);color:var(--error);margin-bottom:var(--s4);display:none}
+
+  @media(max-width:768px){
+    .sidebar{display:none}
+    .cg{grid-template-columns:1fr}
+    .cc.wide{grid-column:span 1}
+    .kpi-grid{grid-template-columns:1fr 1fr}
+    .settings-grid{grid-template-columns:1fr}
+    .drawer{width:100vw}
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <svg class="logo-mark" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="8" fill="var(--primary)" opacity=".15"/>
+      <path d="M16 7v6M16 19v6M7 16h6M19 16h6" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="16" cy="16" r="3.5" fill="var(--primary)"/>
+    </svg>
+    <div><div class="logo-text">MedPipeline</div><div class="logo-sub">Live Dashboard</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Обзор</div>
+    <a class="nav-item active" data-page="dashboard">
+      <i data-lucide="layout-dashboard" class="ic"></i>Дашборд
+    </a>
+    <a class="nav-item" data-page="patients">
+      <i data-lucide="users" class="ic"></i>Пациенты
+    </a>
+    <a class="nav-item" data-page="conditions">
+      <i data-lucide="activity" class="ic"></i>Состояния
+    </a>
+    <div class="nav-label">Система</div>
+    <a class="nav-item" data-page="settings">
+      <i data-lucide="settings" class="ic"></i>Настройки
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div style="display:flex;align-items:center;gap:var(--s2);font-size:var(--xs);color:var(--muted)">
+      <span id="sb-status" class="dot loading"></span>
+      <span id="sb-status-text">Подключение...</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════════════ MAIN ═══════════════════ -->
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="bc">
+        <span>MedPipeline</span><span style="color:var(--faint)">/</span>
+        <span class="bc-cur" id="bc-page">Дашборд</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="live-badge" class="badge b-warn">● Подключение</span>
+      <button class="btn-icon" id="refresh-btn" aria-label="Обновить" title="Обновить данные">
+        <i data-lucide="refresh-cw" style="width:16px;height:16px"></i>
+      </button>
+      <button class="btn-icon" data-theme-toggle aria-label="Тема">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══════════ PAGE: DASHBOARD ══════════ -->
+  <div class="page active" id="page-dashboard">
+    <div class="content">
+      <div class="ph">
+        <h1 class="pt">Аналитика пациентов</h1>
+        <p class="ps" id="last-updated">Загрузка данных...</p>
+      </div>
+      <div id="err-banner" class="err-banner"></div>
+
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi-lbl"><i data-lucide="users" style="width:12px;height:12px"></i>Пациентов</div>
+          <div class="kpi-val" id="k-patients"><div class="skeleton" style="width:80px;height:36px"></div></div>
+          <div class="d-src" id="k-patients-src"></div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl"><i data-lucide="heart-pulse" style="width:12px;height:12px"></i>Обращений</div>
+          <div class="kpi-val" id="k-encounters"><div class="skeleton" style="width:80px;height:36px"></div></div>
+          <div class="d-src" id="k-encounters-src"></div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl"><i data-lucide="file-text" style="width:12px;height:12px"></i>Состояний</div>
+          <div class="kpi-val" id="k-conditions"><div class="skeleton" style="width:80px;height:36px"></div></div>
+          <div class="d-src" id="k-conditions-src"></div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-lbl"><i data-lucide="pill" style="width:12px;height:12px"></i>Медикаментов</div>
+          <div class="kpi-val" id="k-medications"><div class="skeleton" style="width:80px;height:36px"></div></div>
+          <div class="d-src" id="k-medications-src"></div>
+        </div>
+      </div>
+
+      <div class="cg">
+        <div class="cc wide">
+          <div class="ch">
+            <div><div class="ct">Обращения по месяцам</div><div class="csub">Динамика за 12 месяцев · <span id="tl-src">PostgreSQL</span></div></div>
+          </div>
+          <div class="cbox"><canvas id="timelineChart"></canvas></div>
+        </div>
+        <div class="cc">
+          <div class="ch">
+            <div><div class="ct">Топ состояний</div><div class="csub">По числу пациентов · <span id="cond-src">Hive</span></div></div>
+          </div>
+          <div class="cbox"><canvas id="conditionsChart"></canvas></div>
+        </div>
+        <div class="cc">
+          <div class="ch">
+            <div><div class="ct">Возрастные группы</div><div class="csub">Распределение · <span id="age-src">PostgreSQL</span></div></div>
+          </div>
+          <div class="cbox"><canvas id="ageChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="sec-label">Статус компонентов</div>
+      <div class="pg" id="pipeline-grid">
+        <div class="pc"><div class="skeleton" style="height:60px"></div></div>
+        <div class="pc"><div class="skeleton" style="height:60px"></div></div>
+      </div>
+
+      <div class="tc">
+        <div class="th">
+          <div><div class="ct">Топ-10 SNOMED CT состояний</div><div class="csub">Hive / PostgreSQL</div></div>
+          <span class="badge b-pri" id="table-src">Hive / PostgreSQL</span>
+        </div>
+        <table>
+          <thead><tr><th>#</th><th>Состояние</th><th>SNOMED</th><th>Пациентов</th><th>Обращений</th><th>Доля</th></tr></thead>
+          <tbody id="cond-table"><tr><td colspan="6"><div class="skeleton" style="height:120px;margin:var(--s4)"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PAGE: PATIENTS ══════════ -->
+  <div class="page" id="page-patients">
+    <div class="content">
+      <div class="ph">
+        <h1 class="pt">Пациенты</h1>
+        <p class="ps" id="patients-subtitle">Загрузка...</p>
+      </div>
+
+      <div class="filters">
+        <div class="filter-group search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="search" id="pat-search" placeholder="Поиск по ID, городу..." style="width:220px">
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Пол:</span>
+          <div class="filter-chips" id="gender-chips">
+            <span class="chip active" data-val="">Все</span>
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Возраст:</span>
+          <select id="age-filter">
+            <option value="">Все</option>
+            <option value="0-25">0–25</option>
+            <option value="26-50">26–50</option>
+            <option value="51-75">51–75</option>
+            <option value="75+">75+</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="tc">
+        <div class="th">
+          <div class="ct">Список пациентов</div>
+          <span class="badge b-pri" id="patients-count-badge">—</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID пациента</th>
+              <th>Пол</th>
+              <th>Год рождения</th>
+              <th>Возраст</th>
+              <th>Регион</th>
+              <th>Город</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="patients-table">
+            <tr><td colspan="7"><div class="skeleton" style="height:200px;margin:var(--s4)"></div></td></tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <span class="pg-info" id="pat-page-info"></span>
+          <button class="pg-btn" id="pat-prev">← Пред.</button>
+          <button class="pg-btn" id="pat-next">След. →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PAGE: CONDITIONS ══════════ -->
+  <div class="page" id="page-conditions">
+    <div class="content">
+      <div class="ph">
+        <h1 class="pt">Состояния</h1>
+        <p class="ps" id="cond-page-subtitle">SNOMED CT классификация · Hive / PostgreSQL</p>
+      </div>
+
+      <div class="filters">
+        <div class="filter-group search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="search" id="cond-search" placeholder="Поиск по названию..." style="width:240px">
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Тип:</span>
+          <div class="filter-chips" id="cond-type-chips">
+            <span class="chip active" data-val="">Все</span>
+            <!-- dynamic chips injected here -->
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Лимит:</span>
+          <select id="cond-limit">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="cg" style="grid-template-columns:1fr">
+        <div class="cc wide">
+          <div class="ch">
+            <div><div class="ct" id="cond-chart-title">Топ состояний</div><div class="csub">По числу пациентов · <span id="cond-page-src">—</span></div></div>
+          </div>
+          <div class="cbox" style="height:320px"><canvas id="condPageChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="tc">
+        <div class="th">
+          <div class="ct">Все состояния</div>
+          <span class="badge b-pri" id="cond-count-badge">—</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Состояние</th>
+              <th>Тип</th>
+              <th>SNOMED / ICD</th>
+              <th>Пациентов</th>
+              <th>Обращений</th>
+              <th>Доля</th>
+            </tr>
+          </thead>
+          <tbody id="conditions-page-table">
+            <tr><td colspan="7"><div class="skeleton" style="height:200px;margin:var(--s4)"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PAGE: SETTINGS ══════════ -->
+  <div class="page" id="page-settings">
+    <div class="content">
+      <div class="ph">
+        <h1 class="pt">Настройки</h1>
+        <p class="ps">Конфигурация дашборда и подключений</p>
+      </div>
+
+      <div class="settings-grid">
+        <!-- Appearance -->
+        <div class="settings-card">
+          <h3>Внешний вид</h3>
+          <div class="settings-row">
+            <div><div class="settings-label">Тёмная тема</div><div class="settings-desc">Переключить цветовую схему</div></div>
+            <div class="toggle" id="theme-toggle-btn" onclick="toggleThemeSetting()"></div>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">Компактный режим</div><div class="settings-desc">Уменьшить отступы в таблицах</div></div>
+            <div class="toggle" id="compact-toggle" onclick="toggleCompact()"></div>
+          </div>
+        </div>
+
+        <!-- Data refresh -->
+        <div class="settings-card">
+          <h3>Обновление данных</h3>
+          <div class="settings-row">
+            <div><div class="settings-label">Авто-обновление</div><div class="settings-desc">Обновлять данные автоматически</div></div>
+            <div class="toggle on" id="autorefresh-toggle" onclick="toggleAutoRefresh()"></div>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">Интервал (сек)</div><div class="settings-desc">Частота автоматического обновления</div></div>
+            <input type="number" class="settings-input" id="refresh-interval" value="60" min="10" max="3600">
+          </div>
+        </div>
+
+        <!-- Connection -->
+        <div class="settings-card">
+          <h3>Подключение</h3>
+          <div class="settings-row">
+            <div><div class="settings-label">PostgreSQL</div><div class="settings-desc" id="pg-detail">medical_stats</div></div>
+            <span class="badge b-ok" id="pg-badge">●</span>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">Hive</div><div class="settings-desc" id="hive-detail">hive-server:10000</div></div>
+            <span class="badge b-warn" id="hive-badge">●</span>
+          </div>
+          <div style="margin-top:var(--s4);display:flex;gap:var(--s3)">
+            <button class="btn-primary" onclick="loadStatus();loadCondStatusBadges()">Проверить</button>
+            <button class="btn-secondary" onclick="loadAll()">Обновить всё</button>
+          </div>
+        </div>
+
+        <!-- About -->
+        <div class="settings-card">
+          <h3>О системе</h3>
+          <div class="settings-row">
+            <div class="settings-label">Версия</div>
+            <div class="info-val">2.1.0</div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label">Источник данных</div>
+            <div class="info-val">Synthea™</div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label">Классификация</div>
+            <div class="info-val">SNOMED CT / ICD-10</div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-label">Pipeline</div>
+            <div class="info-val">Spark + Hive + PG</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status detail -->
+      <div class="sec-label">Статус компонентов</div>
+      <div class="pg" id="settings-pipeline-grid">
+        <div class="pc"><div class="skeleton" style="height:60px"></div></div>
+        <div class="pc"><div class="skeleton" style="height:60px"></div></div>
+      </div>
+    </div>
+  </div>
+</div><!-- .main -->
+
+<!-- ═══════════════════ PATIENT DRAWER ═══════════════════ -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer(event)">
+  <div class="drawer" id="patient-drawer">
+    <div class="drawer-head">
+      <span class="ct" id="drawer-title">Пациент</span>
+      <button class="btn-icon" onclick="closeDrawerDirect()"><i data-lucide="x" style="width:18px;height:18px"></i></button>
+    </div>
+    <div class="drawer-body" id="drawer-body">
+      <div class="skeleton" style="height:200px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════
+// THEME
+// ════════════════════════════════════════════════════════════════════════
+(function(){
+  const t=document.querySelector('[data-theme-toggle]'),r=document.documentElement;
+  let d=r.getAttribute('data-theme')||'dark';
+  const moon='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+  const sun='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+  const syncToggleBtn=()=>{const b=document.getElementById('theme-toggle-btn');if(b){b.classList.toggle('on',d==='dark');}};
+  if(t){
+    t.innerHTML=d==='dark'?sun:moon;
+    t.addEventListener('click',()=>{d=d==='dark'?'light':'dark';r.setAttribute('data-theme',d);t.innerHTML=d==='dark'?sun:moon;updateCharts();syncToggleBtn();});
+  }
+  window.toggleThemeSetting=function(){d=d==='dark'?'light':'dark';r.setAttribute('data-theme',d);if(t)t.innerHTML=d==='dark'?sun:moon;updateCharts();syncToggleBtn();};
+  syncToggleBtn();
+})();
+lucide.createIcons();
+
+// ════════════════════════════════════════════════════════════════════════
+// SETTINGS state
+// ════════════════════════════════════════════════════════════════════════
+let autoRefreshEnabled=true;
+let refreshInterval=60000;
+let autoRefreshTimer=null;
+let compactMode=false;
+
+function toggleAutoRefresh(){
+  autoRefreshEnabled=!autoRefreshEnabled;
+  document.getElementById('autorefresh-toggle').classList.toggle('on',autoRefreshEnabled);
+  if(autoRefreshEnabled){scheduleRefresh();}
+  else{clearTimeout(autoRefreshTimer);}
+}
+function toggleCompact(){
+  compactMode=!compactMode;
+  document.getElementById('compact-toggle').classList.toggle('on',compactMode);
+  document.querySelectorAll('tbody td').forEach(td=>{
+    td.style.padding=compactMode?'var(--s1) var(--s4)':'';
+  });
+}
+function scheduleRefresh(){
+  clearTimeout(autoRefreshTimer);
+  if(!autoRefreshEnabled)return;
+  const interval=Math.max(10000,parseInt(document.getElementById('refresh-interval').value||60)*1000);
+  autoRefreshTimer=setTimeout(()=>{loadAll();scheduleRefresh();},interval);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// PAGE ROUTING
+// ════════════════════════════════════════════════════════════════════════
+const pageNames={'dashboard':'Дашборд','patients':'Пациенты','conditions':'Состояния','settings':'Настройки'};
+let currentPage='dashboard';
+
+function showPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelector(`[data-page="${page}"]`).classList.add('active');
+  document.getElementById('bc-page').textContent=pageNames[page]||page;
+  currentPage=page;
+
+  if(page==='patients'&&patientsState.data.length===0) loadPatients();
+  if(page==='conditions') loadConditionsPage();
+  if(page==='settings'){loadStatus();loadCondStatusBadges();}
+}
+
+document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
+  el.addEventListener('click',()=>showPage(el.dataset.page));
+});
+
+// ════════════════════════════════════════════════════════════════════════
+// CHART HELPERS
+// ════════════════════════════════════════════════════════════════════════
+Chart.defaults.font.family="'Satoshi','Inter',sans-serif";
+let TL,CON,AGE,CONDPAGE;
+
+function C(){
+  const dk=document.documentElement.getAttribute('data-theme')==='dark';
+  return{
+    primary:dk?'#4f98a3':'#01696f',
+    grid:dk?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)',
+    txt:dk?'#797876':'#7a7974',
+    cols:dk?['#4f98a3','#6daa45','#fdab43','#5591c7','#a86fdf','#dd6974','#e8af34','#bb653b','#d163a7','#4fb398']
+           :['#01696f','#437a22','#da7101','#006494','#7a39bb','#a13544','#d19900','#964219','#a12c7b','#01836f']
+  };
+}
+const TT={backgroundColor:'rgba(28,27,25,.92)',titleColor:'#cdccca',bodyColor:'#797876',padding:10,cornerRadius:8};
+
+function makeTimeline(data){
+  if(TL)TL.destroy();
+  const c=C(),ctx=document.getElementById('timelineChart').getContext('2d');
+  const g=ctx.createLinearGradient(0,0,0,220);
+  g.addColorStop(0,c.primary+'44');g.addColorStop(1,c.primary+'00');
+  TL=new Chart(ctx,{type:'line',data:{
+    labels:data.map(r=>r.month),
+    datasets:[{label:'Обращения',data:data.map(r=>r.count),borderColor:c.primary,backgroundColor:g,borderWidth:2,fill:true,tension:.4,pointRadius:3,pointBackgroundColor:c.primary,pointBorderColor:'transparent'}]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TT},
+    scales:{x:{grid:{display:false},ticks:{color:c.txt,font:{size:11}},border:{display:false}},
+            y:{grid:{color:c.grid},ticks:{color:c.txt,font:{size:11}},border:{display:false}}}}});
+}
+
+function makeConditionsChart(data,canvasId,chartRef){
+  if(chartRef)chartRef.destroy();
+  const c=C(),ctx=document.getElementById(canvasId).getContext('2d');
+  const chart=new Chart(ctx,{type:'bar',data:{
+    labels:data.map(r=>{const s=r.diagnosis_name||r.description||r.name||'';return s.length>28?s.slice(0,28)+'…':s;}),
+    datasets:[{data:data.map(r=>r.patients||0),backgroundColor:c.cols.map(x=>x+'cc'),borderColor:c.cols,borderWidth:1,borderRadius:4}]
+  },options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TT},
+    scales:{x:{grid:{color:c.grid},ticks:{color:c.txt,font:{size:10}},border:{display:false}},
+            y:{grid:{display:false},ticks:{color:c.txt,font:{size:10}},border:{display:false}}}}});
+  return chart;
+}
+
+function makeAge(data){
+  if(AGE)AGE.destroy();
+  const c=C(),ctx=document.getElementById('ageChart').getContext('2d');
+  AGE=new Chart(ctx,{type:'doughnut',data:{
+    labels:data.map(r=>r.age_group||r.label),
+    datasets:[{data:data.map(r=>r.count),backgroundColor:c.cols.map(x=>x+'cc'),borderColor:'transparent',borderWidth:2,hoverOffset:6}]
+  },options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
+    plugins:{legend:{position:'right',labels:{color:c.txt,font:{size:11},boxWidth:10,padding:10}},tooltip:TT}}});
+}
+
+function updateCharts(){
+  if(TL){const c=C(),ctx=document.getElementById('timelineChart').getContext('2d');const g=ctx.createLinearGradient(0,0,0,220);g.addColorStop(0,c.primary+'44');g.addColorStop(1,c.primary+'00');TL.data.datasets[0].borderColor=c.primary;TL.data.datasets[0].backgroundColor=g;TL.data.datasets[0].pointBackgroundColor=c.primary;TL.options.scales.x.ticks.color=c.txt;TL.options.scales.y.ticks.color=c.txt;TL.options.scales.y.grid.color=c.grid;TL.update();}
+  if(CON){const c=C();CON.data.datasets[0].backgroundColor=c.cols.map(x=>x+'cc');CON.data.datasets[0].borderColor=c.cols;CON.options.scales.x.ticks.color=c.txt;CON.options.scales.y.ticks.color=c.txt;CON.options.scales.x.grid.color=c.grid;CON.update();}
+  if(AGE){const c=C();AGE.data.datasets[0].backgroundColor=c.cols.map(x=>x+'cc');AGE.options.plugins.legend.labels.color=c.txt;AGE.update();}
+  if(CONDPAGE){const c=C();CONDPAGE.data.datasets[0].backgroundColor=c.cols.map(x=>x+'cc');CONDPAGE.data.datasets[0].borderColor=c.cols;CONDPAGE.options.scales.x.ticks.color=c.txt;CONDPAGE.options.scales.y.ticks.color=c.txt;CONDPAGE.options.scales.x.grid.color=c.grid;CONDPAGE.update();}
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════════════════════════
+function animCount(el,target){
+  const dur=900,s=performance.now();
+  const tick=now=>{const t=Math.min((now-s)/dur,1),e=1-Math.pow(1-t,3);el.textContent=Math.round(e*target).toLocaleString('ru');if(t<1)requestAnimationFrame(tick);};
+  requestAnimationFrame(tick);
+}
+function showErr(msg){
+  const b=document.getElementById('err-banner');
+  b.textContent='⚠ '+msg;b.style.display='block';
+  setTimeout(()=>b.style.display='none',6000);
+}
+async function api(path){
+  const r=await fetch(path);
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return r.json();
+}
+function extractType(name){
+  if(!name)return'other';
+  const m=name.match(/\(([^)]+)\)\s*$/);
+  return m?m[1].toLowerCase():'other';
+}
+const typeColors={
+  'situation':'#5591c7','disorder':'#d163a7','finding':'#6daa45',
+  'procedure':'#fdab43','observable entity':'#a86fdf',
+  'product':'#e8af34','regime/therapy':'#bb653b',
+  'other':'#797876','unknown':'#5a5957'
+};
+function typeChip(type){
+  const col=typeColors[type]||typeColors.other;
+  return `<span style="display:inline-block;padding:2px 6px;border-radius:999px;font-size:10px;font-weight:600;background:${col}22;color:${col};border:1px solid ${col}44">${type}</span>`;
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// DASHBOARD LOADERS
+// ════════════════════════════════════════════════════════════════════════
+async function loadKPI(){
+  try{
+    const d=await api('/api/kpi');
+    if(d.error)throw new Error(d.error);
+    [['k-patients','patients'],['k-encounters','encounters'],['k-conditions','conditions'],['k-medications','medications']].forEach(([id,key])=>{
+      const el=document.getElementById(id);el.textContent='0';
+      animCount(el,parseInt(d.data[key])||0);
+      document.getElementById(id+'-src').textContent='● '+d.source;
+    });
+  }catch(e){showErr('KPI: '+e.message);['k-patients','k-encounters','k-conditions','k-medications'].forEach(id=>document.getElementById(id).textContent='—');}
+}
+async function loadTimeline(){
+  try{
+    const d=await api('/api/timeline');
+    document.getElementById('tl-src').textContent=d.source;
+    makeTimeline(d.data&&d.data.length?d.data:[{month:'Нет данных',count:0}]);
+  }catch(e){showErr('Timeline: '+e.message);makeTimeline([]);}
+}
+async function loadConditions(){
+  try{
+    const d=await api('/api/conditions?limit=10');
+    document.getElementById('cond-src').textContent=d.source;
+    document.getElementById('table-src').textContent=d.source;
+    if(d.data&&d.data.length){
+      CON=makeConditionsChart(d.data,'conditionsChart',CON);
+      const max=d.data[0].patients||1;
+      document.getElementById('cond-table').innerHTML=d.data.map((r,i)=>`
+        <tr>
+          <td style="color:var(--faint);font-weight:600">${i+1}</td>
+          <td style="font-weight:500;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.diagnosis_name||'—'}</td>
+          <td><span class="mono">${r.icd_code||'—'}</span></td>
+          <td>${(r.patients||0).toLocaleString('ru')}</td>
+          <td>${((r.encounters??r.total)||0).toLocaleString('ru')}</td>
+          <td><div style="display:flex;align-items:center;gap:6px">
+            <div class="prog"><div class="pf" style="width:${Math.round((r.patients||0)/max*100)}%"></div></div>
+            <span style="font-size:10px;color:var(--muted)">${Math.round((r.patients||0)/max*100)}%</span>
+          </div></td>
+        </tr>`).join('');
+    }else{document.getElementById('cond-table').innerHTML='<tr><td colspan="6" style="text-align:center;padding:var(--s8);color:var(--muted)">Нет данных</td></tr>';}
+  }catch(e){showErr('Conditions: '+e.message);}
+}
+async function loadAge(){
+  try{const d=await api('/api/age');document.getElementById('age-src').textContent=d.source;if(d.data&&d.data.length)makeAge(d.data);}
+  catch(e){showErr('Age: '+e.message);makeAge([]);}
+}
+async function loadStatus(){
+  try{
+    const components=await api('/api/status');
+    const renderGrid=(gridId)=>{
+      const grid=document.getElementById(gridId);
+      if(!grid)return;
+      grid.innerHTML=components.map(c=>`
+        <div class="pc">
+          <div class="pn"><span class="dot ${c.status==='ok'?'ok':'err'}"></span>${c.name}</div>
+          <div class="pm">
+            <div><div class="pml">Статус</div><div class="pmv">${c.status==='ok'?'✓ OK':'✗ Ошибка'}</div></div>
+            <div><div class="pml">Детали</div><div class="pmv" style="font-size:var(--xs);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.detail}</div></div>
+          </div>
+        </div>`).join('');
+    };
+    renderGrid('pipeline-grid');
+    renderGrid('settings-pipeline-grid');
+    const allOk=components.every(c=>c.status==='ok');
+    document.getElementById('live-badge').className='badge '+(allOk?'b-ok':'b-err');
+    document.getElementById('live-badge').textContent=allOk?'● Live':'● Частично';
+    document.getElementById('sb-status').className='dot '+(allOk?'ok':'err');
+    document.getElementById('sb-status-text').textContent=allOk?'Всё работает':'Есть проблемы';
+  }catch(e){showErr('Status: '+e.message);}
+}
+function loadCondStatusBadges(){
+  api('/api/status').then(components=>{
+    components.forEach(c=>{
+      if(c.name==='PostgreSQL'){
+        const b=document.getElementById('pg-badge');if(b){b.className='badge '+(c.status==='ok'?'b-ok':'b-err');b.textContent=c.status==='ok'?'● OK':'● Ошибка';}
+        const d=document.getElementById('pg-detail');if(d)d.textContent=c.detail;
+      }
+      if(c.name==='Hive'){
+        const b=document.getElementById('hive-badge');if(b){b.className='badge '+(c.status==='ok'?'b-ok':'b-warn');b.textContent=c.status==='ok'?'● OK':'● Недоступен';}
+        const d=document.getElementById('hive-detail');if(d)d.textContent=c.detail;
+      }
+    });
+  }).catch(()=>{});
+}
+
+async function loadAll(){
+  document.getElementById('last-updated').textContent='Загрузка...';
+  await Promise.allSettled([loadKPI(),loadTimeline(),loadConditions(),loadAge(),loadStatus()]);
+  document.getElementById('last-updated').textContent='Synthea™ · SNOMED CT · Обновлено: '+new Date().toLocaleTimeString('ru');
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// PATIENTS PAGE
+// ════════════════════════════════════════════════════════════════════════
+const patientsState={page:1,limit:25,total:0,data:[],gender:'',age_group:'',q:''};
+
+async function loadPatients(){
+  const {page,limit,gender,age_group,q}=patientsState;
+  let url=`/api/patients?page=${page}&limit=${limit}`;
+  if(gender)url+=`&gender=${encodeURIComponent(gender)}`;
+  if(age_group)url+=`&age_group=${encodeURIComponent(age_group)}`;
+  if(q)url+=`&q=${encodeURIComponent(q)}`;
+  document.getElementById('patients-table').innerHTML='<tr><td colspan="7"><div class="skeleton" style="height:200px;margin:var(--s4)"></div></td></tr>';
+  try{
+    const d=await api(url);
+    patientsState.total=d.total||0;
+    patientsState.data=d.data||[];
+    renderPatientsTable();
+  }catch(e){
+    document.getElementById('patients-table').innerHTML=`<tr><td colspan="7" style="text-align:center;padding:var(--s8);color:var(--error)">⚠ ${e.message}</td></tr>`;
+  }
+}
+
+function renderPatientsTable(){
+  const {data,page,limit,total}=patientsState;
+  document.getElementById('patients-count-badge').textContent=`${total.toLocaleString('ru')} пац.`;
+  document.getElementById('patients-subtitle').textContent=`Всего: ${total.toLocaleString('ru')} пациентов`;
+  const totalPages=Math.ceil(total/limit)||1;
+  document.getElementById('pat-page-info').textContent=`Стр. ${page} из ${totalPages}`;
+  document.getElementById('pat-prev').disabled=page<=1;
+  document.getElementById('pat-next').disabled=page>=totalPages;
+  if(!data.length){
+    document.getElementById('patients-table').innerHTML='<tr><td colspan="7" style="text-align:center;padding:var(--s8);color:var(--muted)">Нет данных</td></tr>';
+    return;
+  }
+  document.getElementById('patients-table').innerHTML=data.map(p=>`
+    <tr>
+      <td><span class="mono" style="font-size:var(--xs)">${p.patient_id.slice(0,12)}…</span></td>
+      <td>${p.gender||'—'}</td>
+      <td>${p.birth_year||'—'}</td>
+      <td><span class="badge b-pri" style="font-size:10px">${p.age_group||'—'}</span></td>
+      <td>${p.state||'—'}</td>
+      <td>${p.city||'—'}</td>
+      <td><button class="btn-icon" title="Подробнее" onclick="openPatient('${p.patient_id}','${(p.gender||'')}','${(p.birth_year||'')}','${(p.age_group||'')}','${(p.city||'')}','${(p.state||'')}')">
+        <i data-lucide="chevron-right" style="width:14px;height:14px"></i>
+      </button></td>
+    </tr>`).join('');
+  lucide.createIcons();
+}
+
+// Load real gender values from DB and build chips
+async function loadGenderChips(){
+  const container=document.getElementById('gender-chips');
+  // Single delegated listener
+  container.addEventListener('click',e=>{
+    const chip=e.target.closest('.chip');if(!chip)return;
+    container.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    patientsState.gender=chip.dataset.val;
+    patientsState.page=1;
+    loadPatients();
+  });
+  try{
+    const d=await api('/api/patients/genders');
+    const genders=d.data||[];
+    // Map known values to display labels
+    const labels={'male':'М (male)','female':'Ж (female)','m':'М','f':'Ж','other':'Другой','unknown':'Неизвестен'};
+    genders.forEach(g=>{
+      const chip=document.createElement('span');
+      chip.className='chip';
+      chip.dataset.val=g;
+      chip.textContent=labels[g]||g;
+      container.appendChild(chip);
+    });
+  }catch(e){
+    // fallback: show M/F using lowercase as FHIR standard
+    ['male','female'].forEach((g,i)=>{
+      const chip=document.createElement('span');
+      chip.className='chip';chip.dataset.val=g;
+      chip.textContent=i===0?'М (male)':'Ж (female)';
+      container.appendChild(chip);
+    });
+  }
+}
+document.getElementById('age-filter').addEventListener('change',e=>{
+  patientsState.age_group=e.target.value;patientsState.page=1;loadPatients();
+});
+let patSearchTimer=null;
+document.getElementById('pat-search').addEventListener('input',e=>{
+  clearTimeout(patSearchTimer);
+  patSearchTimer=setTimeout(()=>{patientsState.q=e.target.value.trim();patientsState.page=1;loadPatients();},400);
+});
+document.getElementById('pat-prev').addEventListener('click',()=>{if(patientsState.page>1){patientsState.page--;loadPatients();}});
+document.getElementById('pat-next').addEventListener('click',()=>{patientsState.page++;loadPatients();});
+
+// ════════════════════════════════════════════════════════════════════════
+// PATIENT DRAWER
+// ════════════════════════════════════════════════════════════════════════
+function openPatient(id,gender,birth_year,age_group,city,state){
+  document.getElementById('drawer-title').textContent='Пациент';
+  document.getElementById('drawer-body').innerHTML='<div class="skeleton" style="height:300px"></div>';
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.getElementById('drawer-body').innerHTML=`
+    <div class="drawer-section">
+      <div class="drawer-section-title">Общие сведения</div>
+      <div class="info-row"><span class="info-key">ID</span><span class="info-val mono" style="font-size:var(--xs);word-break:break-all">${id}</span></div>
+      <div class="info-row"><span class="info-key">Пол</span><span class="info-val">${gender||'—'}</span></div>
+      <div class="info-row"><span class="info-key">Год рождения</span><span class="info-val">${birth_year||'—'}</span></div>
+      <div class="info-row"><span class="info-key">Возрастная группа</span><span class="info-val">${age_group||'—'}</span></div>
+      <div class="info-row"><span class="info-key">Город</span><span class="info-val">${city||'—'}</span></div>
+      <div class="info-row"><span class="info-key">Регион</span><span class="info-val">${state||'—'}</span></div>
+    </div>
+    <div class="drawer-section">
+      <div class="drawer-section-title">Обращения</div>
+      <div id="drawer-encounters"><div class="skeleton" style="height:80px"></div></div>
+    </div>
+    <div class="drawer-section">
+      <div class="drawer-section-title">Состояния</div>
+      <div id="drawer-conditions"><div class="skeleton" style="height:80px"></div></div>
+    </div>`;
+
+  api(`/api/patients/${encodeURIComponent(id)}/encounters`).then(d=>{
+    const el=document.getElementById('drawer-encounters');if(!el)return;
+    if(!d.data||!d.data.length){el.innerHTML='<p style="color:var(--muted);font-size:var(--xs)">Нет обращений</p>';return;}
+    el.innerHTML=d.data.slice(0,5).map(e=>`
+      <div style="padding:var(--s2) 0;border-bottom:1px solid var(--div);font-size:var(--xs)">
+        <div style="font-weight:600;color:var(--text)">${e.encounter_type||e.encounter_class||'—'}</div>
+        <div style="color:var(--muted)">${e.start_date||''}${e.end_date?' → '+e.end_date:''}</div>
+      </div>`).join('');
+  }).catch(()=>{const el=document.getElementById('drawer-encounters');if(el)el.innerHTML='<p style="color:var(--muted);font-size:var(--xs)">Ошибка загрузки</p>';});
+
+  api(`/api/patients/${encodeURIComponent(id)}/conditions`).then(d=>{
+    const el=document.getElementById('drawer-conditions');if(!el)return;
+    if(!d.data||!d.data.length){el.innerHTML='<p style="color:var(--muted);font-size:var(--xs)">Нет состояний</p>';return;}
+    el.innerHTML=d.data.slice(0,8).map(c=>`
+      <div style="padding:var(--s2) 0;border-bottom:1px solid var(--div);font-size:var(--xs)">
+        <div style="font-weight:500;color:var(--text)">${c.diagnosis_name||'—'}</div>
+        <div style="color:var(--muted);display:flex;gap:var(--s2);margin-top:2px">
+          <span>${c.icd_code||''}</span>
+          ${typeChip(extractType(c.diagnosis_name))}
+        </div>
+      </div>`).join('');
+  }).catch(()=>{const el=document.getElementById('drawer-conditions');if(el)el.innerHTML='<p style="color:var(--muted);font-size:var(--xs)">Ошибка загрузки</p>';});
+}
+function closeDrawer(e){if(e.target===document.getElementById('drawer-overlay'))closeDrawerDirect();}
+function closeDrawerDirect(){document.getElementById('drawer-overlay').classList.remove('open');}
+
+// ════════════════════════════════════════════════════════════════════════
+// CONDITIONS PAGE
+// ════════════════════════════════════════════════════════════════════════
+let condPageState={type:'',search:'',limit:50,data:[]};
+
+async function loadConditionsPage(){
+  const {type,limit}=condPageState;
+  let url=`/api/conditions?limit=${limit}`;
+  if(type&&type!=='all')url+=`&type=${encodeURIComponent(type)}`;
+  document.getElementById('conditions-page-table').innerHTML='<tr><td colspan="7"><div class="skeleton" style="height:200px;margin:var(--s4)"></div></td></tr>';
+  try{
+    const d=await api(url);
+    condPageState.data=d.data||[];
+    document.getElementById('cond-page-src').textContent=d.source;
+    renderConditionsPage();
+  }catch(e){
+    document.getElementById('conditions-page-table').innerHTML=`<tr><td colspan="7" style="text-align:center;padding:var(--s8);color:var(--error)">⚠ ${e.message}</td></tr>`;
+  }
+}
+
+function renderConditionsPage(){
+  let data=condPageState.data;
+  const search=condPageState.search.toLowerCase();
+  if(search)data=data.filter(r=>(r.diagnosis_name||'').toLowerCase().includes(search));
+
+  document.getElementById('cond-count-badge').textContent=`${data.length} состояний`;
+  document.getElementById('cond-chart-title').textContent=condPageState.type&&condPageState.type!=='all'
+    ?`Топ: ${condPageState.type}`:'Топ состояний';
+
+  const chartData=data.slice(0,20);
+  CONDPAGE=makeConditionsChart(chartData,'condPageChart',CONDPAGE);
+
+  if(!data.length){
+    document.getElementById('conditions-page-table').innerHTML='<tr><td colspan="7" style="text-align:center;padding:var(--s8);color:var(--muted)">Нет данных</td></tr>';
+    return;
+  }
+  const max=data[0].patients||1;
+  document.getElementById('conditions-page-table').innerHTML=data.map((r,i)=>`
+    <tr>
+      <td style="color:var(--faint);font-weight:600">${i+1}</td>
+      <td style="font-weight:500;max-width:260px">${r.diagnosis_name||'—'}</td>
+      <td>${typeChip(r.condition_type||extractType(r.diagnosis_name))}</td>
+      <td><span class="mono">${r.icd_code||'—'}</span></td>
+      <td>${(r.patients||0).toLocaleString('ru')}</td>
+      <td>${((r.encounters??r.total)||0).toLocaleString('ru')}</td>
+      <td><div style="display:flex;align-items:center;gap:6px">
+        <div class="prog"><div class="pf" style="width:${Math.round((r.patients||0)/max*100)}%"></div></div>
+        <span style="font-size:10px;color:var(--muted)">${Math.round((r.patients||0)/max*100)}%</span>
+      </div></td>
+    </tr>`).join('');
+}
+
+// Load condition types for chips
+function buildCondTypeChips(types){
+  const container=document.getElementById('cond-type-chips');
+  container.innerHTML='';
+  // "Все" chip
+  const allChip=document.createElement('span');
+  allChip.className='chip active';allChip.dataset.val='';allChip.textContent='Все';
+  container.appendChild(allChip);
+  types.forEach(t=>{
+    const chip=document.createElement('span');
+    chip.className='chip';chip.dataset.val=t;
+    const col=typeColors[t]||typeColors.other;
+    chip.style.cssText=`background:${col}15;border-color:${col}44;color:${col}`;
+    chip.textContent=t;
+    container.appendChild(chip);
+  });
+}
+
+// Single delegated listener — attached once
+(function(){
+  const container=document.getElementById('cond-type-chips');
+  container.addEventListener('click',e=>{
+    const chip=e.target.closest('.chip');if(!chip)return;
+    container.querySelectorAll('.chip').forEach(c=>{
+      c.classList.remove('active');
+      if(c.dataset.val){const col=typeColors[c.dataset.val]||typeColors.other;c.style.cssText=`background:${col}15;border-color:${col}44;color:${col}`;}
+      else{c.removeAttribute('style');}
+    });
+    chip.classList.add('active');
+    if(chip.dataset.val){const col=typeColors[chip.dataset.val]||typeColors.other;chip.style.cssText=`background:${col}33;border-color:${col};color:${col}`;}
+    condPageState.type=chip.dataset.val;
+    condPageState.search='';
+    document.getElementById('cond-search').value='';
+    loadConditionsPage();
+  });
+})();
+
+async function loadConditionTypes(){
+  const fallback=['situation','disorder','finding','procedure','observable entity','product','regime/therapy'];
+  try{
+    const d=await api('/api/conditions/types');
+    buildCondTypeChips(d.data&&d.data.length?d.data:fallback);
+  }catch(e){
+    buildCondTypeChips(fallback);
+  }
+}
+
+let condSearchTimer=null;
+document.getElementById('cond-search').addEventListener('input',e=>{
+  clearTimeout(condSearchTimer);
+  condSearchTimer=setTimeout(()=>{condPageState.search=e.target.value.trim();renderConditionsPage();},300);
+});
+document.getElementById('cond-limit').addEventListener('change',e=>{
+  condPageState.limit=parseInt(e.target.value);loadConditionsPage();
+});
+
+// ════════════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════════════
+document.getElementById('refresh-btn').addEventListener('click',()=>{
+  if(currentPage==='dashboard')loadAll();
+  else if(currentPage==='patients')loadPatients();
+  else if(currentPage==='conditions')loadConditionsPage();
+  else if(currentPage==='settings'){loadStatus();loadCondStatusBadges();}
+});
+
+loadAll();
+loadConditionTypes();
+loadGenderChips();
+scheduleRefresh();
+</script>
+</body>
+</html>
