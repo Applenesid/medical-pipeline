@@ -265,12 +265,16 @@ def patient_conditions(patient_id):
     except Exception:
         pass
     try:
+        # Fallback: берём условия пациента напрямую из conditions
+        # (Spark пишет туда: patient_id, icd_code, diagnosis_name, clinical_status, onset_date)
         rows = pg_query("""
-            SELECT diagnosis_name, icd_code, age_group, cases
-            FROM conditions WHERE icd_code IN (
-                SELECT icd_code FROM diagnosis_statistics LIMIT 5
-            ) LIMIT 20
-        """)
+            SELECT diagnosis_name, icd_code,
+                   clinical_status, onset_date
+            FROM conditions
+            WHERE patient_id = %s
+            ORDER BY onset_date DESC NULLS LAST
+            LIMIT 30
+        """, [patient_id])
         return jsonify({"source": "postgres", "data": rows})
     except Exception as e:
         return jsonify({"source": "error", "error": str(e), "data": []})
